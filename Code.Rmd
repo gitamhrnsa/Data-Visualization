@@ -1,0 +1,202 @@
+---
+title: "Data Visualization: Clothing"
+author: "Gita"
+date: '2022-06-29'
+output: html_document
+    
+---
+<style>
+body {
+}
+</style>
+
+
+# Background 
+
+```{r setup}
+# Membersihkan environment
+rm(list = ls())
+# chunk options
+knitr::opts_chunk$set(
+  message = FALSE,
+  warning = FALSE,
+  fig.align = "center",
+  comment = "#>"
+)
+# scientific notation
+options(scipen = 9999)
+```
+
+
+## Input Data
+Pastikan data yang ingin dipakai sudah satu folder dengan R project 
+
+```{r}
+# membaca data 
+clothing <- read.csv("data_input/clothing.csv")
+```
+**Data sudah siap digunakan dan bisa dilanjutkan ke tahapan selanjutnya**
+
+# Data Inspection 
+
+```{r}
+# cek 5 data teratas
+head(clothing)
+```
+
+```{r}
+# cek 5 data terbawah
+tail(clothing)
+```
+
+```{r}
+# cek bentuk dari data
+dim(clothing)
+```
+**Berdasrkan inspeksi di atas, dapat disimpulkan bahwa :`clothing` data terdapat `23486 of rows` dan `9 of coloumns`**
+
+```{r}
+# cek data NA
+colSums(is.na(clothing))
+```
+Cek untuk missing value
+```{r}
+# menghilangkan missing data
+# import library 
+library(tidyverse)
+clothing <- clothing %>% 
+  drop_na(division_name, category)
+colSums(is.na(clothing))
+```
+
+```{r}
+# deskripsikan nama column 
+names(clothing)
+```
+* "clothing_id"
+* “age_group”
+* “review_text”
+* “rating”
+* “recommended_ind”
+* “positive_feedback_count”
+* “division_name”
+* “category”
+* “review_date”
+
+# Data Cleansing and Coertions
+Cek tipe data untuk setiap column
+```{r}
+str(clothing)
+```
+
+** Berdasarkan hasil tersebut, ditemukan beberapa tipe data yang tidak tepat. Sehingga diperlukan perubahan tipe data (data coertion)**
+
+```{r}
+# change data type
+clothing$review_date <- as.Date(clothing$review_date, "%y/%m/%d")
+clothing$age_group <- as.character(clothing$age_group)
+clothing$positive_feedback_count <- as.numeric(clothing$positive_feedback_count)
+str(clothing)
+```
+
+** Setiap colum sudah diubah ke tipe data yang tepat **
+
+Now, the data is ready to be procces and analyse
+
+# Data Explanation
+
+```{r}
+summary(clothing)
+```
+
+Dari ringkasan tersebut, kita dapat menyimpulkan:
+* Review pertama dikirim pada September 2020
+* Review positif per hari secara umum memiliki 3 review per hari
+* Kategori pakaian yang paling banyak di jual adalah tops
+* Pelanggan terbanyak berada dalam rentang usia 35-53 tahun
+* Rata-rata produk memiliki review positif yaitu 4.00
+
+# Data Manipulation and Transformation
+
+**periksa outlier dalam positive feedback count**
+```{r}
+aggregate(positive_feedback_count~category, clothing, mean)
+```
+
+```{r}
+aggregate(positive_feedback_count~category, clothing, var)
+```
+
+```{r}
+aggregate(positive_feedback_count~category, clothing, sd)
+```
+
+```{r}
+boxplot(clothing$positive_feedback_count)
+```
+
+**Kesimpulan : Dari hasil di atas, kami menemukan kemungkinan adanya outlier, namun dari perhitungan kami, nilai Sd sekitar 6 (menurut saya masih bisa ditoleransi), jadi prosesnya bisa dilanjutkan**
+
+
+Berapa total rating dari masing-masing kategori, dan mana yang tertinggi?
+```{r}
+aggregate(rating~category,clothing,sum)
+```
+
+**Jawaban : rating tertinggi berasal dari kategori dari 'tops' di 43675 total rating**
+
+Kategori mana yang memberikan angka penjualan terendah? berapa banyak keuntungan yang didapatkan?
+```{r}
+aggregate(rating~category,clothing,sum)
+```
+
+**Jawaban : rating terendah berasal dari kategori dari 'trend' di 454 total rating**
+
+`product category` mana berdasarkan based costumer `age_group` memberikan `positive_feedback_count` tertinggi? 
+```{r}
+plot(xtabs(positive_feedback_count~category + age_group,clothing))
+```
+
+**Jawaban : secara keseluruhan berdasarkan `age_group` `35 hingga 54` dan `positive feedback count` kategori `tops` adalah yang paling disukai konsumen**
+
+Kategori mana berdasarkan division_name yang memberikan jumlah umpan balik paling positif?
+```{r}
+heatmap(xtabs(positive_feedback_count~division_name+category, clothing), cexRow = 0.8, cexCol = 0.8, scale = "column", Colv = NA, Rowv = NA)
+```
+
+**Jawaban : Category of product yang paling disukai adalah `General`**
+
+Pada bulan apa konsumen memberikan rating paling tinggi untuk kategori produk (based division_names)? 
+```{r}
+# Membuat month column
+clothing$review_month <- months(clothing$review_date)
+# Membuat heatmap untuk visualisi data
+heatmap(xtabs(rating  ~ review_month + age_group,clothing), cexRow = 0.8, cexCol = 0.8, scale = "column", Colv = NA, Rowv = NA)
+``` 
+
+**Jawaban : Konsumen paling banyak memberikan rating pada bulan `Agustus`**
+
+
+Bagaimana aktivitas rating berdasarkan, product category and division_names ? 
+```{r}
+# scale the consume rating
+heatmap(xtabs(rating~category + division_name, clothing), cexRow = 0.8, cexCol = 0.8, scale = "column", Colv = NA, Rowv = NA)
+```
+
+**Jawaban : Rating tertinggi berdasarkan division_name dan category `General and General Petite` adalah `Tops` and for `Intimates` is `Intimate`**
+
+Produk apa yang paling direkomendasikan berdasarkan consumer's vote? 
+```{r}
+# scale recommended product
+heatmap(xtabs(recommended_ind ~ category + division_name, clothing), cexRow = 0.8, cexCol = 0.8, scale = "column", Colv = NA, Rowv = NA)
+```
+
+**Jawaban : Produk yang paling direkomendasikan berdasrkan division_name dan category `General and General Petite` adalah `Tops` and for `Intimates` is `Intimate`**
+
+# Business Recomendation
+
+- Tops akan tetap menjadi kategori produk yang paling disukai
+- Brand General and General Petite menghasilkan tops yang bagus dan Intimates menghasilkan Intimate yang baik dan disukai oleh konsumen
+- Agustus adalah bulan dimana konsumen akan meninggalkan komentar
+- Kelompok usia 35 - 64 adalah kelompok yang memiliki engagement tinggi dengan perusahaan
+- Sebagian besar produk dengan peringkat tertinggi akan baik untuk direkomendasikan kepada non-pembeli
